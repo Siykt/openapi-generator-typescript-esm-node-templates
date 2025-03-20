@@ -1,0 +1,170 @@
+{{>licenseInfo}}
+import Axios, { AxiosRequestConfig } from 'axios';
+
+export const BASE_PATH = "{{{basePath}}}".replace(/\/+$/, "");
+const THROTTLE_WAIT_TIME = 300;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Recordable<T = any> = Record<string, T>;
+
+/**
+ * API Request Config
+ */
+export type ClientRequestConfig = AxiosRequestConfig & {
+  /**
+   * Throttle request
+   * @default true
+   */
+  throttle?: boolean;
+};
+
+type _ThrottleKey = {
+  ok: boolean;
+  time: number;
+};
+
+/**
+ *
+ * @export
+ * @class RequestError
+ * @extends {Error}
+ */
+export class RequestError extends Error {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+class Client {
+  readonly fetch = Axios.create({
+    baseURL: BASE_PATH,
+    timeout: 60000,
+    headers: {
+      'X-Client-Name': 'TonCenter'
+    }
+  });
+
+  // save throttle keys
+  private readonly _throttleKeys = new Map<string, _ThrottleKey>();
+
+  // build throttle key
+  private _buildThrottleKey(config: ClientRequestConfig) {
+    const { method, data, params, baseURL, url } = config;
+    let dataStr = '';
+    if (data) dataStr += typeof data === 'string' ? data : this._safeStringify(data);
+    if (params) dataStr += typeof params === 'string' ? params : this._safeStringify(params);
+
+    const completeUrl = url?.replace(baseURL + '/', '').replace(/[^:]\/\//, '/');
+    return `${method}:${completeUrl}:${dataStr}`;
+  }
+
+  // safe stringify
+  private _safeStringify(data: Recordable) {
+    function _safeStringifyReplacer(seen: WeakSet<object>) {
+      return (_: string, value: object) => {
+        if (value === null || typeof value !== 'object') {
+          if (typeof value === 'bigint') return (value as bigint).toString();
+          return value;
+        }
+
+        if (seen.has(value)) return '[Circular]';
+
+        seen.add(value);
+
+        const newValue: Recordable = Array.isArray(value) ? [] : {};
+        for (const [key2, value2] of Object.entries(value)) {
+          newValue[key2] = _safeStringifyReplacer(seen)(key2, value2);
+        }
+
+        seen.delete(value);
+        return newValue;
+      };
+    }
+
+    return JSON.stringify(data, _safeStringifyReplacer(new WeakSet()));
+  }
+
+  constructor() {
+    // set default interceptors
+    this.fetch.interceptors.request.use(config => {
+      const { throttle = true } = config as ClientRequestConfig;
+      if (!throttle) return config;
+
+      const now = Date.now();
+      // clean up throttle keys
+      for (const [key, throttleKey] of this._throttleKeys) {
+        if (throttleKey.ok && now - throttleKey.time >= THROTTLE_WAIT_TIME) {
+          this._throttleKeys.delete(key);
+        }
+      }
+
+      // build throttle key
+      const hash = this._buildThrottleKey(config);
+
+      // check if request is throttled
+      if (this._throttleKeys.has(hash)) {
+        const { time, ok } = this._throttleKeys.get(hash) as _ThrottleKey;
+
+        // too many requests
+        if (now - time < THROTTLE_WAIT_TIME) throw new RequestError('Too many requests');
+
+        // repeated requests
+        if (!ok) throw new RequestError('Repeated requests');
+      }
+
+      this._throttleKeys.set(hash, { ok: false, time: now });
+      return config;
+    });
+
+    this.fetch.interceptors.response.use(
+      response => {
+        const throttleKey = this._throttleKeys.get(this._buildThrottleKey(response.config));
+        if (throttleKey) throttleKey.ok = true;
+
+        return response.data;
+      },
+      error => {
+        if (error instanceof RequestError) throw error;
+
+        const throttleKey = this._throttleKeys.get(this._buildThrottleKey(error.config));
+        if (throttleKey) throttleKey.ok = true;
+
+        throw error;
+      }
+    );
+  }
+
+  GET<T = unknown>(url: string, params?: Record<string, unknown> | null, config?: ClientRequestConfig) {
+    return this.fetch.get<unknown, T>(url, { ...config, params });
+  }
+
+  POST<T = unknown>(url: string, data?: Record<string, unknown> | null, config?: ClientRequestConfig) {
+    return this.fetch.post<unknown, T>(url, data, config);
+  }
+
+  PUT<T = unknown>(url: string, data?: Record<string, unknown> | null, config?: ClientRequestConfig) {
+    return this.fetch.put<unknown, T>(url, data, config);
+  }
+
+  DELETE<T = unknown>(url: string, config?: ClientRequestConfig) {
+    return this.fetch.delete<unknown, T>(url, config);
+  }
+
+  PATCH<T = unknown>(url: string, data?: Record<string, unknown> | null, config?: ClientRequestConfig) {
+    return this.fetch.patch<unknown, T>(url, data, config);
+  }
+
+  HEAD<T = unknown>(url: string, config?: ClientRequestConfig) {
+    return this.fetch.head<unknown, T>(url, config);
+  }
+
+  OPTIONS<T = unknown>(url: string, config?: ClientRequestConfig) {
+    return this.fetch.options<unknown, T>(url, config);
+  }
+
+  request<T = unknown>(config: ClientRequestConfig) {
+    return this.fetch.request<unknown, T>(config);
+  }
+}
+
+export const {{{appName}}}Client = new Client();

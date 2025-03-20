@@ -1,0 +1,28 @@
+{{#withSeparateModelsAndApi}}
+/* eslint-disable @typescript-eslint/no-explicit-any */
+{{>licenseInfo}}
+import { {{{appName}}}Client, ClientRequestConfig } from '../base.js';
+{{#imports}}
+import { {{classname}} } from '{{apiRelativeToRoot}}{{tsModelPackage}}/index.js';
+{{/imports}}
+{{/withSeparateModelsAndApi}}
+{{^withSeparateModelsAndApi}}{{/withSeparateModelsAndApi}}
+{{#operations}}
+{{#operation}}
+/**
+  * {{&notes}}
+  {{#summary}}
+  * @summary {{&summary}}
+  {{/summary}}
+  {{#allParams}}
+  * @param {{=<% %>=}}{<%&dataType%>}<%={{ }}=%> {{^required}}[{{/required}}{{baseName}}{{^required}}]{{/required}} {{description}}
+  {{/allParams}}
+  * @param {*} [options] Override http request option.
+  * @throws {RequiredError}
+  */
+export async function {{nickname}}({{#allParams}}{{baseName}}{{^required}}?{{/required}}: {{{dataType}}}, {{/allParams}}options?: ClientRequestConfig) {
+  return {{{appName}}}Client.{{httpMethod}}<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}void{{/returnType}}>(`{{{path}}}`, { {{#allParams}}{{baseName}}, {{/allParams}}}, options)
+}
+
+{{/operation}}
+{{/operations}}
