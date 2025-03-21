@@ -134,6 +134,15 @@ class Client {
     );
   }
 
+  /**
+   * Set auth token
+   * @param auth auth token
+   * @param authHeaderKey auth header key
+   */
+  setAuth(auth: string, authHeaderKey: string) {
+    this.fetch.defaults.headers[authHeaderKey] = auth;
+  }
+
   GET<T = unknown>(url: string, params?: Record<string, unknown> | null, config?: ClientRequestConfig) {
     return this.fetch.get<unknown, T>(url, { ...config, params });
   }
