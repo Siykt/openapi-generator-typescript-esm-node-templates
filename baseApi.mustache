@@ -143,15 +143,15 @@ class Client {
     this.fetch.defaults.headers[authHeaderKey] = auth;
   }
 
-  GET<T = unknown>(url: string, params?: Record<string, unknown> | null, config?: ClientRequestConfig) {
+  GET<T = unknown>(url: string, params?: unknown, config?: ClientRequestConfig) {
     return this.fetch.get<unknown, T>(url, { ...config, params });
   }
 
-  POST<T = unknown>(url: string, data?: Record<string, unknown> | null, config?: ClientRequestConfig) {
+  POST<T = unknown>(url: string, data?: unknown, config?: ClientRequestConfig) {
     return this.fetch.post<unknown, T>(url, data, config);
   }
 
-  PUT<T = unknown>(url: string, data?: Record<string, unknown> | null, config?: ClientRequestConfig) {
+  PUT<T = unknown>(url: string, data?: unknown, config?: ClientRequestConfig) {
     return this.fetch.put<unknown, T>(url, data, config);
   }
 
@@ -159,7 +159,7 @@ class Client {
     return this.fetch.delete<unknown, T>(url, config);
   }
 
-  PATCH<T = unknown>(url: string, data?: Record<string, unknown> | null, config?: ClientRequestConfig) {
+  PATCH<T = unknown>(url: string, data?: unknown, config?: ClientRequestConfig) {
     return this.fetch.patch<unknown, T>(url, data, config);
   }
 

@@ -9,19 +9,30 @@ import { {{classname}} } from '{{apiRelativeToRoot}}{{tsModelPackage}}/index.js'
 {{^withSeparateModelsAndApi}}{{/withSeparateModelsAndApi}}
 {{#operations}}
 {{#operation}}
+
+/**
+ * {{&notes}} Request model for {{operationId}}.
+ {{#summary}}
+ * @summary {{&summary}}
+ {{/summary}}
+ */
+export interface {{operationId}}Request {
+  {{#allParams}}
+  /** {{{description}}} */
+  {{baseName}}{{^required}}?{{/required}}: {{{dataType}}};
+  {{/allParams}}{{^allParams}}  // Nothing parameters{{/allParams}}
+}
+
 /**
   * {{&notes}}
   {{#summary}}
   * @summary {{&summary}}
   {{/summary}}
-  {{#allParams}}
-  * @param {{=<% %>=}}{<%&dataType%>}<%={{ }}=%> {{^required}}[{{/required}}{{baseName}}{{^required}}]{{/required}} {{description}}
-  {{/allParams}}
   * @param {*} [options] Override http request option.
   * @throws {RequiredError}
   */
-export async function {{nickname}}({{#allParams}}{{baseName}}{{^required}}?{{/required}}: {{{dataType}}}, {{/allParams}}options?: ClientRequestConfig) {
-  return {{{appName}}}Client.{{httpMethod}}<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}void{{/returnType}}>(`{{{path}}}`, { {{#allParams}}{{baseName}}, {{/allParams}}}, options)
+export async function {{nickname}}(parameters: {{operationId}}Request, options?: ClientRequestConfig) {
+  return {{{appName}}}Client.{{httpMethod}}<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}void{{/returnType}}>(`{{{path}}}`, parameters, options)
 }
 
 {{/operation}}
